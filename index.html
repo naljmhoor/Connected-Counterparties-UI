@@ -1,6 +1,11 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Connected Counterparties</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<!-- Real admin portal self-hosts Cairo (Regular/SemiBold/Bold as separate font-family names);
+     Google Fonts' weighted Cairo family is the public equivalent used here for the same look. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* Layout: replicate existing Manafa Admin Portal shell (top bar + entity bar + fixed sidebar).
    Connected Counterparties has two sections (Relationships / Risk Groups) inside the normal page.
@@ -8,17 +13,24 @@
    workspace with a breadcrumb back — not a drawer, not stacked modals. Relationship inspection
    happens in one consistent, non-blocking side panel regardless of entry point (table row or graph). */
 :root{
-  --bg-page:#f4f5f8; --bg-card:#ffffff; --bg-sidebar:#ffffff; --bg-subtle:#f0f1f5;
-  --border:#e4e7ee; --border-strong:#d6dae3;
-  --text-primary:#1a2032; --text-secondary:#6b7280; --text-tertiary:#9aa1b0;
-  --accent:#3b55e8; --accent-hover:#2d43c9; --accent-fg:#ffffff; --accent-tint:#eaedfd;
-  --success:#16a34a; --success-tint:#e8f8ee;
-  --warning:#b06a00; --warning-tint:#fdf1dc;
-  --danger:#dc2626; --danger-tint:#fdeaea;
-  --neutral-pill:#eef0f4;
-  --radius:10px; --radius-sm:6px; --radius-lg:14px;
-  --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
-  --shadow-lg:0 8px 24px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.08);
+  /* Values below are pulled directly from the real Manafa Admin Portal's own stylesheet
+     (backend-style-admin.min.css) and the Related CRs / summary_card / summary_pill /
+     action-btn / simple-table rules specifically — not invented. See the design notes
+     at the end of this file for exactly which real selector each token was read from. */
+  --bg-page:#f9f9f9; --bg-card:#ffffff; --bg-sidebar:#ffffff; --bg-subtle:#f2f2f2;
+  --border:#e6e6e7; --border-strong:#d6dae3;
+  --text-primary:#03020f; --text-secondary:#5a656b; --text-tertiary:rgba(3,2,15,.5);
+  --accent:#0c66e4; --accent-hover:#0052cc; --accent-fg:#ffffff; --accent-tint:#e9f2ff;
+  --primary-btn:#293be0; --primary-btn-hover:#0065ff;
+  --secondary-btn-bg:rgba(9,30,66,.04); --secondary-btn-text:#42526e;
+  --success:#1b7f3b; --success-tint:#e7f6ec;
+  --warning:#8a6116; --warning-tint:#fdf3d7;
+  --danger:#b42318; --danger-tint:#fdeaea;
+  --neutral-pill:rgba(9,30,66,.059); --neutral-pill-text:#717171;
+  --table-header-bg:#03020f; --table-border:#2b2b2b; --table-stripe:rgba(10,52,94,.059);
+  --switch-off:#dfe1e6; --switch-on:#0052cc;
+  --radius:8px; --radius-sm:3px; --radius-lg:8px; --radius-pill:100px;
+  --shadow:none; --shadow-lg:0 8px 24px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.08);
   --sidebar-w:264px; --topbar-h:56px; --searchbar-h:64px; --insp-w:580px;
   color-scheme:light;
 }
@@ -27,11 +39,12 @@
 html,body{height:100%;}
 body{
   margin:0; background:var(--bg-page); color:var(--text-primary);
-  font-family:-apple-system,"Segoe UI",system-ui,Roboto,Arial,sans-serif;
+  font-family:'Cairo',-apple-system,"Segoe UI",system-ui,Roboto,Arial,sans-serif;
   font-size:13.5px; line-height:1.45;
   padding-left:max(0px, env(safe-area-inset-left,0px));
   padding-right:max(0px, env(safe-area-inset-right,0px));
 }
+h1,h2,h3,h4,h5{color:var(--text-primary); font-weight:700;}
 button,input,select,textarea{font-family:inherit; font-size:inherit; color:inherit;}
 table{border-collapse:collapse;}
 ::-webkit-scrollbar{width:9px;height:9px;}
@@ -76,10 +89,13 @@ table{border-collapse:collapse;}
 }
 .side-item{
   display:flex; align-items:center; gap:10px; padding:10px 18px; color:var(--text-secondary);
-  font-weight:500; cursor:pointer; white-space:nowrap; border-left:3px solid transparent;
+  font-weight:500; cursor:pointer; white-space:nowrap; border-left:5px solid transparent;
 }
 .side-item svg{opacity:.6; flex:0 0 auto;}
 .side-item:hover{background:var(--bg-subtle);}
+/* Matches the real .sidebarNavList a.active rule exactly: #e9f2ff bg, 5px #0c66e4 left
+   border, #0c66e4 text, bold weight (the real stylesheet swaps to a literal Cairo-Bold
+   font-family here — we use font-weight 700 on the single Cairo family instead). */
 .side-item.active{color:var(--accent); font-weight:700; background:var(--accent-tint); border-left-color:var(--accent);}
 .side-item.active svg{opacity:1;}
 .side-item .chev{margin-left:auto; opacity:.5;}
@@ -106,13 +122,16 @@ table{border-collapse:collapse;}
 .tabbar button.active .count{background:var(--accent-tint); color:var(--accent);}
 
 /* ---------- Breadcrumb (workspace pages) ---------- */
-.breadcrumb{display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
-.breadcrumb .crumb-trail{color:var(--text-tertiary); font-size:12.5px;}
+/* Matches the real .nav-breadcrumb: Cairo-SemiBold 14px/700, muted #03020f-at-50% text,
+   "/" separators, 20px bottom margin. */
+.breadcrumb{display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;}
+.breadcrumb .crumb-trail{color:var(--text-tertiary); font-size:14px; font-weight:700;}
 .breadcrumb .crumb-trail strong{color:var(--text-primary); font-weight:700;}
-.breadcrumb .crumb-trail .sep{margin:0 6px; color:var(--border-strong);}
+.breadcrumb .crumb-trail .sep{margin:0 8px; color:var(--text-tertiary);}
 
 /* ---------- Cards / generic ---------- */
-.card{background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:18px;}
+/* Matches the real .panel-box/.summary_card combo: white bg, 1px #e6e6e7 border, 8px radius. */
+.card{background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px;}
 .card + .card{margin-top:16px;}
 .card-head{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
 .card-head h3{font-size:14px; margin:0; font-weight:700;}
@@ -120,47 +139,51 @@ table{border-collapse:collapse;}
 .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
 .spacer{flex:1;}
 
-.btn{display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:9px 14px; font-weight:600; font-size:12.5px; cursor:pointer; border:1px solid transparent; white-space:nowrap;}
-.btn-primary{background:var(--accent); color:#fff;}
-.btn-primary:hover{background:var(--accent-hover);}
-.btn-outline{background:var(--bg-card); border-color:var(--border-strong); color:var(--text-primary);}
-.btn-outline:hover{background:var(--bg-subtle);}
+/* Matches the real .action-btn / .defult-btn / .white-bg-btn specs exactly: 32px height,
+   130px min-width, 3px radius, Cairo-SemiBold 14px (we use weight 600 on one family). */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:7px; border-radius:var(--radius-sm); height:32px; min-width:130px; padding:0 14px; font-weight:600; font-size:13px; cursor:pointer; border:1px solid transparent; white-space:nowrap;}
+.btn-primary{background:var(--primary-btn); color:#fff;}
+.btn-primary:hover{background:var(--primary-btn-hover);}
+.btn-outline{background:var(--secondary-btn-bg); border-color:transparent; color:var(--secondary-btn-text);}
+.btn-outline:hover{background:var(--accent-tint);}
 .btn-danger{background:var(--danger); color:#fff;}
 .btn-danger-outline{background:var(--bg-card); border-color:var(--danger); color:var(--danger);}
-.btn-ghost{background:transparent; color:var(--text-secondary); border:none;}
+.btn-ghost{background:transparent; color:var(--text-secondary); border:none; min-width:0;}
 .btn-ghost:hover{background:var(--bg-subtle);}
-.btn:disabled{opacity:.45; cursor:not-allowed;}
-.btn-sm{padding:6px 10px; font-size:11.5px;}
-.icon-only{width:32px;height:32px;padding:0;justify-content:center;}
+/* Matches the real .action-btn.disabled exactly: a flat light-gray state, not a dimmed
+   brand color — disabled buttons never hint at what color they'd be if enabled. */
+.btn:disabled{background:rgba(9,30,66,.03)!important; color:#717171!important; opacity:1; cursor:not-allowed;}
+.btn-sm{height:28px; min-width:0; padding:0 10px; font-size:12px;}
+.icon-only{width:32px;height:32px;min-width:0;padding:0;justify-content:center;}
 
-.pill{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap;}
-.pill .dot{width:6px;height:6px;border-radius:50%;}
+/* Matches the real .summary_pill component exactly: 100px radius, 13px/600 weight, 2px 12px
+   padding, and a dot that just inherits the pill's own text color (currentColor). */
+.pill{display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; line-height:22px; padding:2px 12px; border-radius:var(--radius-pill); white-space:nowrap;}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 .pill-success{background:var(--success-tint); color:var(--success);}
-.pill-success .dot{background:var(--success);}
 .pill-warning{background:var(--warning-tint); color:var(--warning);}
-.pill-warning .dot{background:var(--warning);}
 .pill-danger{background:var(--danger-tint); color:var(--danger);}
-.pill-danger .dot{background:var(--danger);}
-.pill-neutral{background:var(--neutral-pill); color:var(--text-secondary);}
-.pill-neutral .dot{background:var(--text-tertiary);}
+.pill-neutral{background:var(--neutral-pill); color:var(--neutral-pill-text);}
 .pill-accent{background:var(--accent-tint); color:var(--accent);}
-.pill-accent .dot{background:var(--accent);}
 
 .badge{font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px; background:var(--bg-subtle); color:var(--text-secondary); border:1px solid var(--border);}
 .badge-external{background:var(--warning-tint); color:var(--warning); border-color:transparent;}
 .badge-more{background:transparent; color:var(--accent); border-color:transparent; padding-left:2px;}
 
-table.data{width:100%; border-collapse:collapse; font-size:12.5px;}
-table.data th{text-align:left; color:var(--text-tertiary); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.3px; padding:9px 12px; border-bottom:1px solid var(--border); white-space:nowrap;}
-table.data td{padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:middle;}
-table.data tr:last-child td{border-bottom:none;}
+/* Matches the real .simple-table/.table-striped combo exactly: black header with white bold
+   text, 1px #e6e6e7 cell borders, 14px/35px-tall rows, 3px 6px padding, no wrapping, and a
+   subtle navy-tinted stripe on odd rows (rgba(10,52,94,.059)) — the look used by every real
+   data table in the admin portal (incl. the existing Related CRs precursor to this feature). */
+table.data{width:100%; border-collapse:collapse; font-size:14px;}
+table.data th{text-align:left; color:#fff; font-weight:700; background:var(--table-header-bg); padding:3px 6px; height:35px; border:1px solid var(--table-border); white-space:nowrap;}
+table.data td{padding:3px 6px; height:35px; border:1px solid var(--border); vertical-align:middle;}
+table.data tbody tr:nth-of-type(odd){background:var(--table-stripe);}
 table.data tr.total-row td{font-weight:800; background:var(--bg-subtle);}
 table.data td.num, table.data th.num{text-align:right; font-variant-numeric:tabular-nums;}
 table.data tr.clickable{cursor:pointer;}
-table.data tr.clickable:hover{background:var(--bg-subtle);}
+table.data tr.clickable:hover{background:var(--accent-tint);}
 .table-scroll{overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border);}
 .table-scroll table.data{border:none;}
-.table-scroll table.data th, .table-scroll table.data td{border-left:none; border-right:none;}
 
 /* Compact KPI strip — a slim banded row of figures, used in place of oversized stat-grid
    cards on the Financing & Exposure and Repayment Performance tabs. */
@@ -279,9 +302,11 @@ table.data tr.clickable:hover{background:var(--bg-subtle);}
 .field{margin-bottom:14px;}
 .field label{display:block; font-size:12px; font-weight:700; margin-bottom:6px; color:var(--text-secondary);}
 .field .req{color:var(--danger);}
+/* Real inputs use a light gray fill (~#e6e6e7) with a 3px radius, not a white bordered box. */
 .field input[type=text], .field input[type=search], .field select, .field textarea{
-  width:100%; padding:9px 11px; border:1px solid var(--border-strong); border-radius:8px; background:var(--bg-page); color:var(--text-primary);
+  width:100%; padding:9px 11px; border:1px solid transparent; border-radius:var(--radius-sm); background:var(--bg-subtle); color:var(--text-primary);
 }
+.field input[type=text]:focus, .field input[type=search]:focus, .field select:focus, .field textarea:focus{border-color:var(--accent); outline:none;}
 .field textarea{min-height:70px; resize:vertical;}
 .field .hint{font-size:11px; color:var(--text-tertiary); margin-top:5px;}
 .radio-row{display:flex; gap:16px; margin-top:4px; flex-wrap:wrap;}
